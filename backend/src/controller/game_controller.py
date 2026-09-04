@@ -4,6 +4,9 @@ from schema.game_model import GamePlayModel, GameResponse
 from service.game_service import GameService
 from utils.log_utils import get_logger
 from utils.security import verify_token
+from business_object.game_mode import Game
+from business_object.game_mode import GameMode
+
 
 router = APIRouter()
 
@@ -17,7 +20,7 @@ def get_game_service():
 
 @router.post("/", response_model=GameResponse, tags=["Games"])
 def play_game(
-    req: GamePlayModel, game_service=Depends(get_game_service), current_player=Depends(verify_token)
+    req: GamePlayModel, game_service=Depends(get_game_service), req.game_mode , current_player=Depends(verify_token)
 ):
     """Starts and executes a new game session.
     Args:
@@ -33,11 +36,18 @@ def play_game(
     logger.info("Play a game")
     res = game_service.play(current_player.id_player, req.id_opponent, **req.params)
 
+    game = GameService().play(
+        req.player_id,
+        req.opponent_id,
+        req.game_mode,
+        choice=req.choice
+    )
+
     return GameResponse(
-        username1=res["player1"],
-        username2=res["player2"],
-        description=res["description"],
-        winner=res["winner"],
-        new_elo1=res["new_elo1"],
-        new_elo2=res["new_elo2"],
+    username1=game.player1.username,
+    username2=game.player2.username,
+    description=game.description,
+    winner=game.winner.username if game.winner else None,
+    new_elo1=game.player1.elo,
+    new_elo2=game.player2.elo,
     )
